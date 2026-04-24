@@ -53,10 +53,10 @@ Cada módulo segue o padrão:
 
 Arquivos compartilhados:
 
-- [backend/src/aplicacao.ts](/home/athenas/Associacao-Pescadores/backend/src/aplicacao.ts): composição da API
-- [backend/src/middlewares/autenticar.ts](/home/athenas/Associacao-Pescadores/backend/src/middlewares/autenticar.ts): proteção por JWT
-- [backend/src/compartilhado/auditoria.ts](/home/athenas/Associacao-Pescadores/backend/src/compartilhado/auditoria.ts): registro de logs
-- [backend/prisma/schema.prisma](/home/athenas/Associacao-Pescadores/backend/prisma/schema.prisma): modelo de dados
+- [backend/src/aplicacao.ts](backend/src/aplicacao.ts): composição da API
+- [backend/src/middlewares/autenticar.ts](backend/src/middlewares/autenticar.ts): proteção por JWT
+- [backend/src/compartilhado/auditoria.ts](backend/src/compartilhado/auditoria.ts): registro de logs
+- [backend/prisma/schema.prisma](backend/prisma/schema.prisma): modelo de dados
 
 ## Organização do frontend
 

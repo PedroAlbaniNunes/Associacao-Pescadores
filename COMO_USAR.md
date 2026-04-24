@@ -14,7 +14,7 @@ O projeto está dividido em duas aplicações:
 
 ## 1. Subir o backend
 
-No diretório [backend](/home/athenas/Associacao-Pescadores/backend):
+No diretório [backend](backend):
 
 ```bash
 npm install
@@ -32,7 +32,7 @@ Isso irá:
 
 ## 2. Subir o frontend
 
-No diretório [frontend](/home/athenas/Associacao-Pescadores/frontend):
+No diretório [frontend](frontend):
 
 ```bash
 npm install
