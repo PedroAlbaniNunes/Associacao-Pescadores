@@ -1,0 +1,277 @@
+import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { Search, Store as StoreIcon, Check, X, Plus, Eye, RefreshCw } from "lucide-react";
+import { toast } from "sonner";
+import { Card, CardContent, CardHeader } from "../components/ui/card";
+import { Input } from "../components/ui/input";
+import { Button } from "../components/ui/button";
+import { Badge } from "../components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "../components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../components/ui/select";
+import { Textarea } from "../components/ui/textarea";
+import { useAutenticacao } from "../hooks/useAutenticacao";
+import { servicoLojas } from "../servicos/lojas";
+import { servicoAssociados } from "../servicos/associados";
+import type { Associado, Loja, StatusLoja } from "../tipos/api";
+import { formatarData } from "../utils/formatacao";
+
+const statusClasse: Record<StatusLoja, string> = {
+  aprovada: "bg-green-100 text-green-800 hover:bg-green-100",
+  pendente: "bg-yellow-100 text-yellow-800 hover:bg-yellow-100",
+  rejeitada: "bg-red-100 text-red-800 hover:bg-red-100",
+  suspensa: "bg-slate-200 text-slate-800 hover:bg-slate-200",
+};
+
+export function Lojas() {
+  const { token } = useAutenticacao();
+  const [lojas, setLojas] = useState<Loja[]>([]);
+  const [associados, setAssociados] = useState<Associado[]>([]);
+  const [filtroStatus, setFiltroStatus] = useState<"todos" | StatusLoja>("todos");
+  const [busca, setBusca] = useState("");
+  const [carregando, setCarregando] = useState(true);
+  const [modalAberta, setModalAberta] = useState(false);
+  const [lojaSelecionada, setLojaSelecionada] = useState<Loja | null>(null);
+  const [formulario, setFormulario] = useState({
+    associadoId: "",
+    nomeLoja: "",
+    descricao: "",
+    produtos: 0,
+  });
+
+  async function carregarDados() {
+    if (!token) return;
+    setCarregando(true);
+    try {
+      const [respostaLojas, respostaAssociados] = await Promise.all([
+        servicoLojas.listar(token, {
+          busca: busca || undefined,
+          status: filtroStatus === "todos" ? undefined : filtroStatus,
+        }),
+        servicoAssociados.listar(token),
+      ]);
+      setLojas(respostaLojas.itens);
+      setAssociados(respostaAssociados.itens);
+    } catch (erro) {
+      toast.error(erro instanceof Error ? erro.message : "Erro ao carregar lojas");
+    } finally {
+      setCarregando(false);
+    }
+  }
+
+  useEffect(() => {
+    const timer = setTimeout(() => void carregarDados(), 250);
+    return () => clearTimeout(timer);
+  }, [token, busca, filtroStatus]);
+
+  const lojasOrdenadas = useMemo(
+    () => [...lojas].sort((a, b) => a.nomeLoja.localeCompare(b.nomeLoja)),
+    [lojas],
+  );
+
+  async function handleCriar(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!token) return;
+
+    try {
+      await servicoLojas.criar(token, formulario);
+      toast.success("Loja cadastrada com sucesso");
+      setFormulario({ associadoId: "", nomeLoja: "", descricao: "", produtos: 0 });
+      setModalAberta(false);
+      await carregarDados();
+    } catch (erro) {
+      toast.error(erro instanceof Error ? erro.message : "Erro ao criar loja");
+    }
+  }
+
+  async function atualizarStatus(loja: Loja, status: StatusLoja) {
+    if (!token) return;
+    const motivoRejeicao =
+      status === "rejeitada" ? window.prompt("Informe o motivo da rejeição:") ?? undefined : undefined;
+
+    try {
+      await servicoLojas.atualizarStatus(token, loja.id, status, motivoRejeicao);
+      toast.success(`Loja "${loja.nomeLoja}" atualizada`);
+      await carregarDados();
+    } catch (erro) {
+      toast.error(erro instanceof Error ? erro.message : "Erro ao atualizar loja");
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h1 className="text-2xl text-slate-900">Aprovação de Lojas</h1>
+          <p className="text-slate-500">Fluxo de solicitação, análise e aprovação das lojas vinculadas</p>
+        </div>
+
+        <div className="flex gap-2">
+          <Button variant="outline" className="gap-2" onClick={() => void carregarDados()}>
+            <RefreshCw className="w-4 h-4" />
+            Atualizar
+          </Button>
+          <Dialog open={modalAberta} onOpenChange={setModalAberta}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Plus className="w-4 h-4" />
+                Nova Loja
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Cadastrar loja</DialogTitle>
+              </DialogHeader>
+              <form className="space-y-4" onSubmit={handleCriar}>
+                <Select value={formulario.associadoId} onValueChange={(value) => setFormulario((atual) => ({ ...atual, associadoId: value }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o associado" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {associados.map((associado) => (
+                      <SelectItem key={associado.id} value={associado.id}>
+                        {associado.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Input placeholder="Nome da loja" value={formulario.nomeLoja} onChange={(event) => setFormulario((atual) => ({ ...atual, nomeLoja: event.target.value }))} />
+                <Textarea placeholder="Descrição da loja" value={formulario.descricao} onChange={(event) => setFormulario((atual) => ({ ...atual, descricao: event.target.value }))} />
+                <Input type="number" min={0} placeholder="Quantidade de produtos" value={formulario.produtos} onChange={(event) => setFormulario((atual) => ({ ...atual, produtos: Number(event.target.value) }))} />
+                <Button className="w-full" type="submit">Salvar loja</Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col gap-4 md:flex-row">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <Input
+                className="pl-10"
+                placeholder="Buscar por loja ou associado..."
+                value={busca}
+                onChange={(event) => setBusca(event.target.value)}
+              />
+            </div>
+            <Select value={filtroStatus} onValueChange={(value) => setFiltroStatus(value as "todos" | StatusLoja)}>
+              <SelectTrigger className="w-full md:w-[220px]">
+                <SelectValue placeholder="Filtrar por status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos os status</SelectItem>
+                <SelectItem value="pendente">Pendente</SelectItem>
+                <SelectItem value="aprovada">Aprovada</SelectItem>
+                <SelectItem value="rejeitada">Rejeitada</SelectItem>
+                <SelectItem value="suspensa">Suspensa</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {carregando ? (
+            <p className="py-10 text-center text-slate-500">Carregando lojas...</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Loja</TableHead>
+                  <TableHead>Associado</TableHead>
+                  <TableHead>Descrição</TableHead>
+                  <TableHead>Produtos</TableHead>
+                  <TableHead>Solicitação</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {lojasOrdenadas.map((loja) => (
+                  <TableRow key={loja.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100">
+                          <StoreIcon className="h-5 w-5 text-blue-600" />
+                        </div>
+                        <span className="font-medium text-slate-900">{loja.nomeLoja}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>{loja.associado?.nome ?? "—"}</TableCell>
+                    <TableCell className="max-w-xs truncate">{loja.descricao}</TableCell>
+                    <TableCell>{loja.produtos}</TableCell>
+                    <TableCell>{formatarData(loja.dataSolicitacao)}</TableCell>
+                    <TableCell>
+                      <Badge className={statusClasse[loja.status]}>{loja.status}</Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        {loja.status === "pendente" && (
+                          <>
+                            <Button size="sm" variant="outline" className="gap-2 text-green-700" onClick={() => void atualizarStatus(loja, "aprovada")}>
+                              <Check className="h-4 w-4" />
+                              Aprovar
+                            </Button>
+                            <Button size="sm" variant="outline" className="gap-2 text-red-700" onClick={() => void atualizarStatus(loja, "rejeitada")}>
+                              <X className="h-4 w-4" />
+                              Rejeitar
+                            </Button>
+                          </>
+                        )}
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button variant="ghost" size="sm" onClick={() => setLojaSelecionada(loja)}>
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Detalhes da loja</DialogTitle>
+                            </DialogHeader>
+                            {lojaSelecionada && (
+                              <div className="space-y-3 text-sm">
+                                <p><strong>Loja:</strong> {lojaSelecionada.nomeLoja}</p>
+                                <p><strong>Associado:</strong> {lojaSelecionada.associado?.nome}</p>
+                                <p><strong>Status:</strong> {lojaSelecionada.status}</p>
+                                <p><strong>Descrição:</strong> {lojaSelecionada.descricao}</p>
+                                <p><strong>Produtos:</strong> {lojaSelecionada.produtos}</p>
+                                <p><strong>Motivo da rejeição:</strong> {lojaSelecionada.motivoRejeicao || "—"}</p>
+                              </div>
+                            )}
+                          </DialogContent>
+                        </Dialog>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+
+          {!carregando && lojasOrdenadas.length === 0 && (
+            <div className="py-12 text-center text-slate-500">Nenhuma loja encontrada</div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
