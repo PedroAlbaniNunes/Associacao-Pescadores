@@ -1,0 +1,181 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// USUÁRIOS DO PAINEL ADMIN
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Usuario {
+  id        String   @id @default(uuid())
+  nome      String
+  email     String   @unique
+  senhaHash String
+  papel     String   @default("ADMIN")
+  criadoEm  DateTime @default(now())
+
+  logsAuditoria LogAuditoria[]
+
+  @@map("usuarios")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ASSOCIADOS (PESCADORES)
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Associado {
+  id             String   @id @default(uuid())
+  nome           String
+  cpf            String   @unique
+  email          String   @unique
+  telefone       String
+  embarcacao     String?
+  numeroCarteira String   @unique
+  status         String   @default("ativo")
+  dataCadastro   DateTime @default(now())
+  observacoes    String?
+  atualizadoEm   DateTime @updatedAt
+
+  lojas           Loja[]
+  permissoes      Permissao[]
+  presencas       PresencaReuniao[]
+  mensalidades    Mensalidade[]
+  historicoStatus HistoricoStatusAssociado[]
+
+  @@map("associados")
+}
+
+model HistoricoStatusAssociado {
+  id             String   @id @default(uuid())
+  associadoId    String
+  statusAnterior String
+  statusNovo     String
+  motivo         String?
+  alteradoEm     DateTime @default(now())
+  alteradoPor    String?
+
+  associado Associado @relation(fields: [associadoId], references: [id], onDelete: Cascade)
+
+  @@map("historico_status_associado")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LOJAS
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Loja {
+  id              String    @id @default(uuid())
+  associadoId     String
+  nomeLoja        String
+  descricao       String
+  status          String    @default("pendente")
+  dataSolicitacao DateTime  @default(now())
+  dataAprovacao   DateTime?
+  motivoRejeicao  String?
+  produtos        Int       @default(0)
+  atualizadoEm    DateTime  @updatedAt
+
+  associado Associado @relation(fields: [associadoId], references: [id], onDelete: Cascade)
+
+  @@map("lojas")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PERMISSÕES DE PESCA / VENDA
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Permissao {
+  id            String    @id @default(uuid())
+  associadoId   String
+  tipoPermissao String
+  ativa         Boolean   @default(true)
+  dataInicio    DateTime
+  dataFim       DateTime?
+  quota         Int?
+  criadoEm      DateTime  @default(now())
+  atualizadoEm  DateTime  @updatedAt
+
+  associado Associado @relation(fields: [associadoId], references: [id], onDelete: Cascade)
+
+  @@map("permissoes")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// REUNIÕES E PRESENÇAS
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Reuniao {
+  id           String   @id @default(uuid())
+  titulo       String
+  descricao    String
+  data         DateTime
+  horario      String
+  local        String
+  status       String   @default("agendada")
+  pautaJson    String   @default("[]")
+  ata          String?
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  presencas PresencaReuniao[]
+
+  @@map("reunioes")
+}
+
+model PresencaReuniao {
+  id          String  @id @default(uuid())
+  reuniaoId   String
+  associadoId String
+  presente    Boolean @default(false)
+
+  reuniao   Reuniao   @relation(fields: [reuniaoId], references: [id], onDelete: Cascade)
+  associado Associado @relation(fields: [associadoId], references: [id], onDelete: Cascade)
+
+  @@unique([reuniaoId, associadoId])
+  @@map("presencas_reuniao")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MENSALIDADES
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Mensalidade {
+  id             String    @id @default(uuid())
+  associadoId    String
+  competencia    String
+  valor          Float
+  dataVencimento DateTime
+  dataPagamento  DateTime?
+  status         String    @default("pendente")
+  criadoEm       DateTime  @default(now())
+  atualizadoEm   DateTime  @updatedAt
+
+  associado Associado @relation(fields: [associadoId], references: [id], onDelete: Cascade)
+
+  @@unique([associadoId, competencia])
+  @@map("mensalidades")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AUDITORIA
+// ─────────────────────────────────────────────────────────────────────────────
+
+model LogAuditoria {
+  id         String   @id @default(uuid())
+  usuarioId  String?
+  acao       String
+  entidade   String
+  entidadeId String?
+  detalhes   String?
+  criadoEm   DateTime @default(now())
+
+  usuario Usuario? @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+
+  @@map("logs_auditoria")
+}
