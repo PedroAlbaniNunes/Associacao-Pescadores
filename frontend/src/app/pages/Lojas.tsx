@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Search, Store as StoreIcon, Check, X, Plus, Eye, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader } from "../components/ui/card";
@@ -28,6 +28,7 @@ import {
   SelectValue,
 } from "../components/ui/select";
 import { Textarea } from "../components/ui/textarea";
+import { Label } from "../components/ui/label";
 import { useAutenticacao } from "../hooks/useAutenticacao";
 import { servicoLojas } from "../servicos/lojas";
 import { servicoAssociados } from "../servicos/associados";
@@ -50,6 +51,8 @@ export function Lojas() {
   const [carregando, setCarregando] = useState(true);
   const [modalAberta, setModalAberta] = useState(false);
   const [lojaSelecionada, setLojaSelecionada] = useState<Loja | null>(null);
+  const [rejeitandoLoja, setRejeitandoLoja] = useState<Loja | null>(null);
+  const [motivoRejeicao, setMotivoRejeicao] = useState("");
   const [formulario, setFormulario] = useState({
     associadoId: "",
     nomeLoja: "",
@@ -82,10 +85,6 @@ export function Lojas() {
     return () => clearTimeout(timer);
   }, [token, busca, filtroStatus]);
 
-  const lojasOrdenadas = useMemo(
-    () => [...lojas].sort((a, b) => a.nomeLoja.localeCompare(b.nomeLoja)),
-    [lojas],
-  );
 
   async function handleCriar(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -102,18 +101,31 @@ export function Lojas() {
     }
   }
 
-  async function atualizarStatus(loja: Loja, status: StatusLoja) {
-    if (!token) return;
-    const motivoRejeicao =
-      status === "rejeitada" ? window.prompt("Informe o motivo da rejeição:") ?? undefined : undefined;
+  function iniciarAtualizacaoStatus(loja: Loja, status: StatusLoja) {
+    if (status === "rejeitada") {
+      setMotivoRejeicao("");
+      setRejeitandoLoja(loja);
+    } else {
+      void executarAtualizacaoStatus(loja, status, undefined);
+    }
+  }
 
+  async function executarAtualizacaoStatus(loja: Loja, status: StatusLoja, motivo: string | undefined) {
+    if (!token) return;
     try {
-      await servicoLojas.atualizarStatus(token, loja.id, status, motivoRejeicao);
+      await servicoLojas.atualizarStatus(token, loja.id, status, motivo);
       toast.success(`Loja "${loja.nomeLoja}" atualizada`);
       await carregarDados();
     } catch (erro) {
       toast.error(erro instanceof Error ? erro.message : "Erro ao atualizar loja");
     }
+  }
+
+  async function confirmarRejeicao() {
+    if (!rejeitandoLoja) return;
+    await executarAtualizacaoStatus(rejeitandoLoja, "rejeitada", motivoRejeicao || undefined);
+    setRejeitandoLoja(null);
+    setMotivoRejeicao("");
   }
 
   return (
@@ -206,7 +218,7 @@ export function Lojas() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {lojasOrdenadas.map((loja) => (
+                {lojas.map((loja) => (
                   <TableRow key={loja.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
@@ -227,11 +239,11 @@ export function Lojas() {
                       <div className="flex justify-end gap-2">
                         {loja.status === "pendente" && (
                           <>
-                            <Button size="sm" variant="outline" className="gap-2 text-green-700" onClick={() => void atualizarStatus(loja, "aprovada")}>
+                            <Button size="sm" variant="outline" className="gap-2 text-green-700" onClick={() => iniciarAtualizacaoStatus(loja, "aprovada")}>
                               <Check className="h-4 w-4" />
                               Aprovar
                             </Button>
-                            <Button size="sm" variant="outline" className="gap-2 text-red-700" onClick={() => void atualizarStatus(loja, "rejeitada")}>
+                            <Button size="sm" variant="outline" className="gap-2 text-red-700" onClick={() => iniciarAtualizacaoStatus(loja, "rejeitada")}>
                               <X className="h-4 w-4" />
                               Rejeitar
                             </Button>
@@ -267,11 +279,41 @@ export function Lojas() {
             </Table>
           )}
 
-          {!carregando && lojasOrdenadas.length === 0 && (
+          {!carregando && lojas.length === 0 && (
             <div className="py-12 text-center text-slate-500">Nenhuma loja encontrada</div>
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={rejeitandoLoja !== null} onOpenChange={(open) => { if (!open) { setRejeitandoLoja(null); setMotivoRejeicao(""); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rejeitar loja</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-slate-600">
+              Informe o motivo para rejeitar a loja <strong>{rejeitandoLoja?.nomeLoja}</strong>.
+            </p>
+            <div className="space-y-2">
+              <Label>Motivo da rejeição</Label>
+              <Textarea
+                placeholder="Descreva o motivo..."
+                value={motivoRejeicao}
+                onChange={(event) => setMotivoRejeicao(event.target.value)}
+                rows={3}
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => { setRejeitandoLoja(null); setMotivoRejeicao(""); }}>
+                Cancelar
+              </Button>
+              <Button variant="destructive" onClick={() => void confirmarRejeicao()}>
+                Rejeitar loja
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
