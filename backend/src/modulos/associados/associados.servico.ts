@@ -1,6 +1,7 @@
 import { Prisma } from "../../../src/generated/prisma/index.js";
 import { prisma } from "../../infraestrutura/prisma/cliente.js";
 import {
+  ErroAplicacao,
   ErroConflito,
   ErroNaoEncontrado,
 } from "../../compartilhado/erros.js";
@@ -116,7 +117,7 @@ export const associadosServico = {
       (dados.status === "suspenso" || dados.status === "bloqueado") &&
       !dados.motivo?.trim()
     ) {
-      throw new ErroConflito("Motivo é obrigatório para suspender ou bloquear");
+      throw new ErroAplicacao("Motivo é obrigatório para suspender ou bloquear");
     }
 
     const [associado] = await prisma.$transaction([
