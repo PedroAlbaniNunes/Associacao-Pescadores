@@ -13,6 +13,7 @@ import {
   DialogTrigger,
 } from "../components/ui/dialog";
 import { Checkbox } from "../components/ui/checkbox";
+import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
 import { useAutenticacao } from "../hooks/useAutenticacao";
 import { servicoReunioes } from "../servicos/reunioes";
@@ -33,6 +34,8 @@ export function Reunioes() {
   const [associados, setAssociados] = useState<Associado[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [modalAberta, setModalAberta] = useState(false);
+  const [finalizandoReuniao, setFinalizandoReuniao] = useState<Reuniao | null>(null);
+  const [ataText, setAtaText] = useState("");
   const [formulario, setFormulario] = useState({
     titulo: "",
     descricao: "",
@@ -101,13 +104,30 @@ export function Reunioes() {
 
   async function atualizarStatus(reuniao: Reuniao, status: StatusReuniao) {
     if (!token) return;
-    const ata = status === "concluida" ? window.prompt("Insira a ata resumida da reunião:", reuniao.ata ?? "") ?? undefined : undefined;
+    if (status === "concluida") {
+      setAtaText(reuniao.ata ?? "");
+      setFinalizandoReuniao(reuniao);
+      return;
+    }
     try {
-      await servicoReunioes.atualizarStatus(token, reuniao.id, status, ata);
+      await servicoReunioes.atualizarStatus(token, reuniao.id, status, undefined);
       toast.success("Status da reunião atualizado");
       await carregarDados();
     } catch (erro) {
       toast.error(erro instanceof Error ? erro.message : "Erro ao atualizar reunião");
+    }
+  }
+
+  async function confirmarFinalizacao() {
+    if (!token || !finalizandoReuniao) return;
+    try {
+      await servicoReunioes.atualizarStatus(token, finalizandoReuniao.id, "concluida", ataText || undefined);
+      toast.success("Reunião finalizada");
+      setFinalizandoReuniao(null);
+      setAtaText("");
+      await carregarDados();
+    } catch (erro) {
+      toast.error(erro instanceof Error ? erro.message : "Erro ao finalizar reunião");
     }
   }
 
@@ -131,6 +151,34 @@ export function Reunioes() {
   }
 
   return (
+    <>
+    <Dialog open={finalizandoReuniao !== null} onOpenChange={(open) => { if (!open) { setFinalizandoReuniao(null); setAtaText(""); } }}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Finalizar reunião</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <p className="text-sm text-slate-600">
+            Registre a ata resumida antes de concluir a reunião <strong>{finalizandoReuniao?.titulo}</strong>.
+          </p>
+          <Textarea
+            placeholder="Ata da reunião (opcional)"
+            value={ataText}
+            onChange={(event) => setAtaText(event.target.value)}
+            rows={5}
+          />
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => { setFinalizandoReuniao(null); setAtaText(""); }}>
+              Cancelar
+            </Button>
+            <Button onClick={() => void confirmarFinalizacao()}>
+              Concluir reunião
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+
     <div className="space-y-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
@@ -265,20 +313,20 @@ export function Reunioes() {
         </TabsContent>
       </Tabs>
     </div>
+    </>
   );
 }
 
 function InputWrapper(props: { label: string; value: string; onChange: (value: string) => void; type?: string }) {
   return (
-    <label className="space-y-2 text-sm font-medium text-slate-700">
-      <span>{props.label}</span>
-      <input
-        className="flex h-10 w-full rounded-md border border-slate-200 bg-transparent px-3 py-2 text-sm outline-none focus:border-slate-400"
+    <div className="space-y-2">
+      <label className="text-sm font-medium text-slate-700">{props.label}</label>
+      <Input
         type={props.type ?? "text"}
         value={props.value}
         onChange={(event) => props.onChange(event.target.value)}
       />
-    </label>
+    </div>
   );
 }
 

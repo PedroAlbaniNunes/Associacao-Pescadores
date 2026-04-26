@@ -1,5 +1,15 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Search, ShieldCheck, Plus, Edit, Trash2, KeyRound } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "../components/ui/alert-dialog";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader } from "../components/ui/card";
 import { Input } from "../components/ui/input";
@@ -57,6 +67,7 @@ export function Permissoes() {
   const [modalAberta, setModalAberta] = useState(false);
   const [permissaoEmEdicao, setPermissaoEmEdicao] = useState<Permissao | null>(null);
   const [formulario, setFormulario] = useState(formularioInicial);
+  const [excluindo, setExcluindo] = useState<Permissao | null>(null);
 
   async function carregarDados() {
     if (!token) return;
@@ -143,12 +154,12 @@ export function Permissoes() {
     }
   }
 
-  async function excluirPermissao(permissao: Permissao) {
-    if (!token) return;
-    if (!window.confirm(`Deseja revogar a permissão "${permissao.tipoPermissao}"?`)) return;
+  async function confirmarExclusao() {
+    if (!excluindo || !token) return;
     try {
-      await servicoPermissoes.excluir(token, permissao.id);
+      await servicoPermissoes.excluir(token, excluindo.id);
       toast.success("Permissão removida");
+      setExcluindo(null);
       await carregarDados();
     } catch (erro) {
       toast.error(erro instanceof Error ? erro.message : "Erro ao excluir permissão");
@@ -274,7 +285,7 @@ export function Permissoes() {
                             <KeyRound className="mr-2 h-4 w-4" />
                             Gerar API Key
                           </DropdownMenuItem>
-                          <DropdownMenuItem className="text-red-600" onClick={() => void excluirPermissao(permissao)}>
+                          <DropdownMenuItem className="text-red-600" onClick={() => setExcluindo(permissao)}>
                             <Trash2 className="mr-2 h-4 w-4" />
                             Revogar
                           </DropdownMenuItem>
@@ -292,6 +303,21 @@ export function Permissoes() {
           )}
         </CardContent>
       </Card>
+
+      <AlertDialog open={excluindo !== null} onOpenChange={(open) => { if (!open) setExcluindo(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Revogar permissão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Deseja revogar a permissão <strong>{excluindo?.tipoPermissao}</strong>? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => void confirmarExclusao()}>Revogar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

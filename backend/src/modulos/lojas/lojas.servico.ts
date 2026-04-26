@@ -1,6 +1,7 @@
 import { Prisma } from "../../../src/generated/prisma/index.js";
 import { prisma } from "../../infraestrutura/prisma/cliente.js";
 import {
+  ErroAplicacao,
   ErroConflito,
   ErroNaoEncontrado,
 } from "../../compartilhado/erros.js";
@@ -115,13 +116,13 @@ export const lojasServico = {
     const existente = await prisma.loja.findUnique({ where: { id } });
     if (!existente) throw new ErroNaoEncontrado("Loja");
 
-    if (dados.associadoId) {
-      await validarAssociadoParaLoja(dados.associadoId);
-    }
+    const associado = dados.associadoId
+      ? await validarAssociadoParaLoja(dados.associadoId)
+      : null;
 
     if (dados.status === "aprovada") {
-      const associado = await validarAssociadoParaLoja(dados.associadoId ?? existente.associadoId);
-      if (associado.status !== "ativo") {
+      const assocParaChecagem = associado ?? await validarAssociadoParaLoja(existente.associadoId);
+      if (assocParaChecagem.status !== "ativo") {
         throw new ErroConflito("Somente associados ativos podem ter lojas aprovadas");
       }
     }
@@ -169,7 +170,7 @@ export const lojasServico = {
     }
 
     if (dados.status === "rejeitada" && !dados.motivoRejeicao?.trim()) {
-      throw new ErroConflito("Motivo é obrigatório ao rejeitar uma loja");
+      throw new ErroAplicacao("Motivo é obrigatório ao rejeitar uma loja");
     }
 
     const atualizada = await prisma.loja.update({

@@ -72,8 +72,6 @@ export const mensalidadesServico = {
     pagina: number;
     porPagina: number;
   }) {
-    await this.sincronizarAtrasos();
-
     const where: Prisma.MensalidadeWhereInput = {};
     if (filtros.associadoId) where.associadoId = filtros.associadoId;
     if (filtros.status) where.status = filtros.status;
@@ -104,7 +102,6 @@ export const mensalidadesServico = {
   },
 
   async buscarPorId(id: string) {
-    await this.sincronizarAtrasos();
     const mensalidade = await prisma.mensalidade.findUnique({
       where: { id },
       include: {
@@ -254,8 +251,6 @@ export const mensalidadesServico = {
     );
 
     const associadosIds = [...new Set(pendentes.map((item) => item.associadoId))];
-    for (const associadoId of associadosIds) {
-      await sincronizarStatusAssociado(associadoId);
-    }
+    await Promise.all(associadosIds.map(sincronizarStatusAssociado));
   },
 };
