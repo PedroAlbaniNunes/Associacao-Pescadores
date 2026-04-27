@@ -7,6 +7,8 @@ Projeto completo para demonstração de um painel administrativo da associação
 - banco local SQLite com Prisma
 - autenticação JWT
 - módulos de associados, lojas, permissões, reuniões, mensalidades, dashboard e auditoria
+- módulos operacionais de produtos, vendas e transportes
+- endpoints públicos mínimos para integrações externas
 
 Os guias principais ficam nestes arquivos:
 

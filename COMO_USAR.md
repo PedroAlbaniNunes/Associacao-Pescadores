@@ -63,9 +63,22 @@ VITE_API_URL=http://localhost:3333
 - cadastro de mensalidades e baixa de pagamento
 - atualização automática de inadimplência
 - endpoints públicos para integração externa
+- módulos de produtos, vendas e transportes no backend
 - logs de auditoria acessíveis pela API
 
-## 5. Dados importantes para demo
+## 5. Integração externa
+
+Para sistemas como vendas, chatbot ou rotas, a integração pública deve preferir os endpoints de leitura abaixo:
+
+- `GET /api/publico/associados/ativos`
+- `GET /api/publico/lojas/aprovadas`
+- `GET /api/publico/pescador/:id/ativo`
+- `GET /api/publico/loja/:id/ativa`
+- `GET /api/publico/pescador/:id/status`
+
+Esses retornos foram mantidos enxutos para não expor CPF, e-mail, telefone ou outros dados sensíveis.
+
+## 6. Dados importantes para demo
 
 - O banco é local (`SQLite`) e fica no ambiente do backend.
 - O fluxo foi pensado para demonstração e desenvolvimento rápido.

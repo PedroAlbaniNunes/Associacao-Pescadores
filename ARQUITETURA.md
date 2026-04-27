@@ -51,6 +51,14 @@ Cada módulo segue o padrão:
 - `*.servico.ts`: regras de negócio e persistência
 - `*.rotas.ts`: exposição HTTP via Fastify
 
+Além dos módulos administrativos, o backend agora inclui módulos operacionais para o ciclo comercial:
+
+- `produtos`
+- `vendas`
+- `transportes`
+
+Esses módulos cuidam do catálogo de loja, registro de vendas, controle de estoque e acompanhamento de entregas.
+
 Arquivos compartilhados:
 
 - [backend/src/aplicacao.ts](backend/src/aplicacao.ts): composição da API
@@ -97,6 +105,17 @@ O backend recalcula atrasos e sincroniza o status do associado:
 ### Lojas
 
 Uma loja só pode ser aprovada se o associado estiver `ativo`.
+
+### Integração pública
+
+O módulo `api-publica` concentra dados de leitura para consumo por sistemas externos.
+
+Regras de segurança aplicadas:
+
+- respostas públicas devem expor apenas o necessário para o uso operacional
+- os endpoints `.../ativo` e `.../ativa` devolvem somente `true` ou `false`
+- listas públicas não retornam CPF, e-mail, telefone ou outros dados sensíveis
+- o endpoint de status devolve apenas `id`, `nome` e `status`
 
 ## Motivos da arquitetura
 
