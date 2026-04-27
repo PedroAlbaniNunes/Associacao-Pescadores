@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { Search, Store as StoreIcon, Check, X, Plus, Eye, RefreshCw } from "lucide-react";
+import { Search, Store as StoreIcon, Check, X, Plus, Eye, RefreshCw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader } from "../components/ui/card";
 import { Input } from "../components/ui/input";
@@ -20,6 +20,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "../components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "../components/ui/alert-dialog";
 import {
   Select,
   SelectContent,
@@ -52,6 +62,7 @@ export function Lojas() {
   const [modalAberta, setModalAberta] = useState(false);
   const [lojaSelecionada, setLojaSelecionada] = useState<Loja | null>(null);
   const [rejeitandoLoja, setRejeitandoLoja] = useState<Loja | null>(null);
+  const [excluindo, setExcluindo] = useState<Loja | null>(null);
   const [motivoRejeicao, setMotivoRejeicao] = useState("");
   const [formulario, setFormulario] = useState({
     associadoId: "",
@@ -126,6 +137,18 @@ export function Lojas() {
     await executarAtualizacaoStatus(rejeitandoLoja, "rejeitada", motivoRejeicao || undefined);
     setRejeitandoLoja(null);
     setMotivoRejeicao("");
+  }
+
+  async function confirmarExclusao() {
+    if (!excluindo || !token) return;
+    try {
+      await servicoLojas.excluir(token, excluindo.id);
+      toast.success("Loja removida");
+      setExcluindo(null);
+      await carregarDados();
+    } catch (erro) {
+      toast.error(erro instanceof Error ? erro.message : "Erro ao remover loja");
+    }
   }
 
   return (
@@ -271,6 +294,9 @@ export function Lojas() {
                             )}
                           </DialogContent>
                         </Dialog>
+                        <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700" onClick={() => setExcluindo(loja)} title="Remover loja">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -284,6 +310,21 @@ export function Lojas() {
           )}
         </CardContent>
       </Card>
+
+      <AlertDialog open={excluindo !== null} onOpenChange={(open) => { if (!open) setExcluindo(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover loja</AlertDialogTitle>
+            <AlertDialogDescription>
+              Deseja realmente remover <strong>{excluindo?.nomeLoja}</strong>? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => void confirmarExclusao()}>Remover</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Dialog open={rejeitandoLoja !== null} onOpenChange={(open) => { if (!open) { setRejeitandoLoja(null); setMotivoRejeicao(""); } }}>
         <DialogContent>

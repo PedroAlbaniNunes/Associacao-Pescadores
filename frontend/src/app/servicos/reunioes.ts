@@ -41,4 +41,11 @@ export const servicoReunioes = {
       corpo: { associadoId, presente },
     });
   },
+
+  excluir(token: string, id: string) {
+    return requisitar<void>(`/api/reunioes/${id}`, {
+      metodo: "DELETE",
+      token,
+    });
+  },
 };

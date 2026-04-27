@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ComponentType, type FormEvent } from "react";
-import { Calendar, Plus, Users, FileText, MapPin, Clock, CheckCircle } from "lucide-react";
+import { Calendar, Plus, Users, FileText, MapPin, Clock, CheckCircle, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -12,6 +12,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "../components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "../components/ui/alert-dialog";
 import { Checkbox } from "../components/ui/checkbox";
 import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
@@ -34,7 +44,9 @@ export function Reunioes() {
   const [associados, setAssociados] = useState<Associado[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [modalAberta, setModalAberta] = useState(false);
+  const [listaPresencaAbertaId, setListaPresencaAbertaId] = useState<string | null>(null);
   const [finalizandoReuniao, setFinalizandoReuniao] = useState<Reuniao | null>(null);
+  const [excluindo, setExcluindo] = useState<Reuniao | null>(null);
   const [ataText, setAtaText] = useState("");
   const [formulario, setFormulario] = useState({
     titulo: "",
@@ -135,9 +147,33 @@ export function Reunioes() {
     if (!token) return;
     try {
       await servicoReunioes.atualizarPresenca(token, reuniaoId, associadoId, presente);
-      await carregarDados();
+      setReunioes((atuais) =>
+        atuais.map((reuniao) =>
+          reuniao.id === reuniaoId
+            ? {
+                ...reuniao,
+                presencas: reuniao.presencas.map((presenca) =>
+                  presenca.associadoId === associadoId ? { ...presenca, presente } : presenca,
+                ),
+              }
+            : reuniao,
+        ),
+      );
     } catch (erro) {
       toast.error(erro instanceof Error ? erro.message : "Erro ao atualizar presença");
+    }
+  }
+
+  async function confirmarExclusao() {
+    if (!excluindo || !token) return;
+    try {
+      await servicoReunioes.excluir(token, excluindo.id);
+      toast.success("Reunião removida");
+      setExcluindo(null);
+      setListaPresencaAbertaId(null);
+      await carregarDados();
+    } catch (erro) {
+      toast.error(erro instanceof Error ? erro.message : "Erro ao remover reunião");
     }
   }
 
@@ -152,6 +188,21 @@ export function Reunioes() {
 
   return (
     <>
+    <AlertDialog open={excluindo !== null} onOpenChange={(open) => { if (!open) setExcluindo(null); }}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Remover reunião</AlertDialogTitle>
+          <AlertDialogDescription>
+            Deseja realmente remover <strong>{excluindo?.titulo}</strong>? Esta ação não pode ser desfeita.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogAction onClick={() => void confirmarExclusao()}>Remover</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+
     <Dialog open={finalizandoReuniao !== null} onOpenChange={(open) => { if (!open) { setFinalizandoReuniao(null); setAtaText(""); } }}>
       <DialogContent>
         <DialogHeader>
@@ -245,29 +296,39 @@ export function Reunioes() {
             reunioesAgendadas.map((reuniao) => (
               <Card key={reuniao.id}>
                 <CardContent className="space-y-4 p-6">
-                  <CabecalhoReuniao reuniao={reuniao} />
+                  <div className="flex items-start justify-between gap-3">
+                    <CabecalhoReuniao reuniao={reuniao} />
+                    <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700" onClick={() => setExcluindo(reuniao)} title="Remover reunião">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                   <p className="text-slate-600">{reuniao.descricao}</p>
                   <MetadadosReuniao reuniao={reuniao} />
                   <PautaReuniao reuniao={reuniao} />
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button variant="outline">Lista de presença</Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-2xl">
-                      <DialogHeader>
-                        <DialogTitle>Lista de presença</DialogTitle>
-                      </DialogHeader>
-                      <div className="space-y-3">
-                        {reuniao.presencas.map((presenca) => (
-                          <div key={presenca.associadoId} className="flex items-center justify-between rounded-lg bg-slate-50 p-3">
-                            <span>{presenca.associadoNome}</span>
-                            <Checkbox checked={presenca.presente} onCheckedChange={(checked) => void alternarPresenca(reuniao.id, presenca.associadoId, Boolean(checked))} />
-                          </div>
-                        ))}
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-                  <Button onClick={() => void atualizarStatus(reuniao, "em_andamento")}>Iniciar reunião</Button>
+                  <div className="flex flex-wrap gap-3">
+                    <Dialog
+                      open={listaPresencaAbertaId === reuniao.id}
+                      onOpenChange={(open) => setListaPresencaAbertaId(open ? reuniao.id : null)}
+                    >
+                      <DialogTrigger asChild>
+                        <Button variant="outline">Lista de presença</Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-2xl">
+                        <DialogHeader>
+                          <DialogTitle>Lista de presença</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-3">
+                          {reuniao.presencas.map((presenca) => (
+                            <div key={presenca.associadoId} className="flex items-center justify-between rounded-lg bg-slate-50 p-3">
+                              <span>{presenca.associadoNome}</span>
+                              <Checkbox checked={presenca.presente} onCheckedChange={(checked) => void alternarPresenca(reuniao.id, presenca.associadoId, Boolean(checked))} />
+                            </div>
+                          ))}
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                    <Button onClick={() => void atualizarStatus(reuniao, "em_andamento")}>Iniciar reunião</Button>
+                  </div>
                 </CardContent>
               </Card>
             ))
@@ -278,12 +339,19 @@ export function Reunioes() {
           {reunioesEmAndamento.map((reuniao) => (
             <Card key={reuniao.id}>
               <CardContent className="space-y-4 p-6">
-                <CabecalhoReuniao reuniao={reuniao} />
+                <div className="flex items-start justify-between gap-3">
+                  <CabecalhoReuniao reuniao={reuniao} />
+                  <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700" onClick={() => setExcluindo(reuniao)} title="Remover reunião">
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
                 <p className="text-slate-600">{reuniao.descricao}</p>
                 <p className="text-sm text-slate-500">
                   Presentes: {reuniao.presencas.filter((item) => item.presente).length} de {reuniao.presencas.length}
                 </p>
-                <Button onClick={() => void atualizarStatus(reuniao, "concluida")}>Finalizar reunião</Button>
+                <div className="flex flex-wrap gap-3">
+                  <Button onClick={() => void atualizarStatus(reuniao, "concluida")}>Finalizar reunião</Button>
+                </div>
               </CardContent>
             </Card>
           ))}
@@ -293,7 +361,12 @@ export function Reunioes() {
           {reunioesConcluidas.map((reuniao) => (
             <Card key={reuniao.id}>
               <CardContent className="space-y-4 p-6">
-                <CabecalhoReuniao reuniao={reuniao} />
+                <div className="flex items-start justify-between gap-3">
+                  <CabecalhoReuniao reuniao={reuniao} />
+                  <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700" onClick={() => setExcluindo(reuniao)} title="Remover reunião">
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
                 <MetadadosReuniao reuniao={reuniao} />
                 {reuniao.ata && (
                   <div className="rounded-lg bg-slate-50 p-4">
@@ -304,9 +377,11 @@ export function Reunioes() {
                     <p className="text-sm text-slate-600">{reuniao.ata}</p>
                   </div>
                 )}
-                <Button variant="outline" onClick={() => window.print()}>
-                  Exportar / imprimir
-                </Button>
+                <div className="flex flex-wrap gap-3">
+                  <Button variant="outline" onClick={() => window.print()}>
+                    Exportar / imprimir
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))}

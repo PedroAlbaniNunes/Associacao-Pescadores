@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { Search, ShieldCheck, Plus, Edit, Trash2, KeyRound } from "lucide-react";
+import { Search, ShieldCheck, Plus, Edit, Trash2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,12 +24,6 @@ import {
   TableHeader,
   TableRow,
 } from "../components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "../components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -265,32 +259,14 @@ export function Permissoes() {
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onSelect={(event) => {
-                              event.preventDefault();
-                              abrirEdicao(permissao);
-                            }}
-                          >
-                            <Edit className="mr-2 h-4 w-4" />
-                            Editar
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => toast.info("Chave simulada gerada para demonstração")}>
-                            <KeyRound className="mr-2 h-4 w-4" />
-                            Gerar API Key
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="text-red-600" onClick={() => setExcluindo(permissao)}>
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Revogar
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <div className="flex justify-end gap-2">
+                        <Button variant="ghost" size="sm" onClick={() => abrirEdicao(permissao)} title="Editar permissão">
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700" onClick={() => setExcluindo(permissao)} title="Revogar permissão">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

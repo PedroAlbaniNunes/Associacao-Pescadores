@@ -14,12 +14,6 @@ import {
   TableRow,
 } from "../components/ui/table";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "../components/ui/dropdown-menu";
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -93,8 +87,6 @@ export function Associados() {
   const [detalhes, setDetalhes] = useState<DetalhesAssociado | null>(null);
   const [formulario, setFormulario] = useState(formularioInicial);
   const [excluindo, setExcluindo] = useState<Associado | null>(null);
-  const [alterandoStatus, setAlterandoStatus] = useState<{ associado: Associado; status: StatusAssociado } | null>(null);
-  const [motivoInput, setMotivoInput] = useState("");
 
   async function carregarAssociados() {
     if (!token) return;
@@ -168,33 +160,6 @@ export function Associados() {
     } catch (erro) {
       toast.error(erro instanceof Error ? erro.message : "Erro ao salvar associado");
     }
-  }
-
-  function iniciarAlteracaoStatus(associado: Associado, status: StatusAssociado) {
-    if (status === "suspenso" || status === "bloqueado") {
-      setMotivoInput("");
-      setAlterandoStatus({ associado, status });
-    } else {
-      void executarAlteracaoStatus(associado, status, undefined);
-    }
-  }
-
-  async function executarAlteracaoStatus(associado: Associado, status: StatusAssociado, motivo: string | undefined) {
-    if (!token) return;
-    try {
-      await servicoAssociados.alterarStatus(token, associado.id, status, motivo);
-      toast.success(`Status de ${associado.nome} atualizado`);
-      await carregarAssociados();
-    } catch (erro) {
-      toast.error(erro instanceof Error ? erro.message : "Erro ao alterar status");
-    }
-  }
-
-  async function confirmarAlteracaoStatus() {
-    if (!alterandoStatus || !token) return;
-    await executarAlteracaoStatus(alterandoStatus.associado, alterandoStatus.status, motivoInput || undefined);
-    setAlterandoStatus(null);
-    setMotivoInput("");
   }
 
   async function confirmarExclusao() {
@@ -332,49 +297,17 @@ export function Associados() {
                     </TableCell>
                     <TableCell>{associado.numeroCarteira}</TableCell>
                     <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onSelect={(event) => {
-                              event.preventDefault();
-                              void abrirDetalhes(associado);
-                            }}
-                          >
-                            <Eye className="mr-2 h-4 w-4" />
-                            Ver detalhes
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onSelect={(event) => {
-                              event.preventDefault();
-                              abrirEdicao(associado);
-                            }}
-                          >
-                            <Edit className="mr-2 h-4 w-4" />
-                            Editar
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => iniciarAlteracaoStatus(associado, "ativo")}>
-                            Marcar como ativo
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => iniciarAlteracaoStatus(associado, "suspenso")}>
-                            Suspender
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => iniciarAlteracaoStatus(associado, "inadimplente")}>
-                            Marcar inadimplente
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => iniciarAlteracaoStatus(associado, "bloqueado")}>
-                            Bloquear
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="text-red-600" onClick={() => setExcluindo(associado)}>
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Excluir
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <div className="flex flex-wrap justify-end gap-2">
+                        <Button variant="ghost" size="sm" onClick={() => void abrirDetalhes(associado)} title="Ver detalhes">
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => abrirEdicao(associado)} title="Editar associado">
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700" onClick={() => setExcluindo(associado)} title="Excluir associado">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -477,35 +410,6 @@ export function Associados() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <Dialog open={alterandoStatus !== null} onOpenChange={(open) => { if (!open) { setAlterandoStatus(null); setMotivoInput(""); } }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {alterandoStatus?.status === "suspenso" ? "Suspender associado" : "Bloquear associado"}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <p className="text-sm text-slate-600">
-              Informe o motivo para {alterandoStatus?.status === "suspenso" ? "suspender" : "bloquear"}{" "}
-              <strong>{alterandoStatus?.associado.nome}</strong>.
-            </p>
-            <Textarea
-              placeholder="Descreva o motivo..."
-              value={motivoInput}
-              onChange={(event) => setMotivoInput(event.target.value)}
-              rows={3}
-            />
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => { setAlterandoStatus(null); setMotivoInput(""); }}>
-                Cancelar
-              </Button>
-              <Button onClick={() => void confirmarAlteracaoStatus()}>
-                Confirmar
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
