@@ -47,6 +47,7 @@ model Associado {
   presencas       PresencaReuniao[]
   mensalidades    Mensalidade[]
   historicoStatus HistoricoStatusAssociado[]
+  vendas          Venda[]
 
   @@map("associados")
 }
@@ -78,12 +79,92 @@ model Loja {
   dataSolicitacao DateTime   @default(now())
   dataAprovacao   DateTime?
   motivoRejeicao  String?
-  produtos        Int        @default(0)
   atualizadoEm    DateTime   @updatedAt
 
   associado Associado @relation(fields: [associadoId], references: [id], onDelete: Cascade)
+  produtos  Produto[]
+  vendas    Venda[]
 
   @@map("lojas")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PRODUTOS DAS LOJAS
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Produto {
+  id           String    @id @default(uuid())
+  lojaId       String
+  nome         String
+  descricao    String?
+  preco        Float
+  estoque      Int       @default(0)
+  ativo        Boolean   @default(true)
+  criadoEm     DateTime  @default(now())
+  atualizadoEm DateTime  @updatedAt
+
+  loja       Loja        @relation(fields: [lojaId], references: [id], onDelete: Cascade)
+  itensVenda ItemVenda[]
+
+  @@map("produtos")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// VENDAS
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Venda {
+  id           String   @id @default(uuid())
+  lojaId       String
+  associadoId  String
+  total        Float
+  status       String   @default("concluida")
+  observacoes  String?
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  loja       Loja        @relation(fields: [lojaId], references: [id], onDelete: Cascade)
+  associado  Associado   @relation(fields: [associadoId], references: [id], onDelete: Cascade)
+  itens      ItemVenda[]
+  transporte Transporte?
+
+  @@map("vendas")
+}
+
+model ItemVenda {
+  id            String @id @default(uuid())
+  vendaId       String
+  produtoId     String
+  quantidade    Int
+  precoUnitario Float
+  subtotal      Float
+
+  venda   Venda   @relation(fields: [vendaId], references: [id], onDelete: Cascade)
+  produto Produto @relation(fields: [produtoId], references: [id], onDelete: Restrict)
+
+  @@map("itens_venda")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TRANSPORTES
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Transporte {
+  id             String    @id @default(uuid())
+  vendaId        String    @unique
+  transportadora String?
+  destino        String
+  status         String    @default("pendente")
+  dataEnvio      DateTime?
+  dataEntrega    DateTime?
+  rastreamento   String?
+  observacoes    String?
+  criadoEm       DateTime  @default(now())
+  atualizadoEm   DateTime  @updatedAt
+
+  venda Venda @relation(fields: [vendaId], references: [id], onDelete: Cascade)
+
+  @@map("transportes")
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

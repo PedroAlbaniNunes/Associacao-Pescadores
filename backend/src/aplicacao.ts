@@ -14,6 +14,9 @@ import { rotasMensalidades } from "./modulos/mensalidades/mensalidades.rotas.js"
 import { rotasDashboard } from "./modulos/dashboard/dashboard.rotas.js";
 import { rotasApiPublica } from "./modulos/api-publica/api-publica.rotas.js";
 import { rotasAuditoria } from "./modulos/auditoria/auditoria.rotas.js";
+import { rotasProdutos } from "./modulos/produtos/produtos.rotas.js";
+import { rotasVendas } from "./modulos/vendas/vendas.rotas.js";
+import { rotasTransportes } from "./modulos/transportes/transportes.rotas.js";
 
 export async function construirAplicacao() {
   const app = Fastify({
@@ -43,6 +46,9 @@ export async function construirAplicacao() {
   await app.register(rotasDashboard, { prefix: "/api/dashboard" });
   await app.register(rotasApiPublica, { prefix: "/api/publico" });
   await app.register(rotasAuditoria, { prefix: "/api/auditoria" });
+  await app.register(rotasProdutos, { prefix: "/api/produtos" });
+  await app.register(rotasVendas, { prefix: "/api/vendas" });
+  await app.register(rotasTransportes, { prefix: "/api/transportes" });
 
   return app;
 }

@@ -45,7 +45,6 @@ export interface Loja {
   dataSolicitacao: string;
   dataAprovacao?: string | null;
   motivoRejeicao?: string | null;
-  produtos: number;
   associado?: Pick<Associado, "id" | "nome" | "status" | "numeroCarteira" | "email" | "telefone">;
 }
 

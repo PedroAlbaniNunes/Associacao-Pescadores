@@ -197,10 +197,12 @@ Painel Admin (Web)
 
 | Método | Endpoint | Descrição |
 |---|---|---|
-| `GET` | `/api/associados/ativos` | Retorna todos os associados com status ativo |
-| `GET` | `/api/lojas/aprovadas` | Retorna todas as lojas aprovadas |
-| `GET` | `/api/pescador/{id}/pode-vender` | Verifica se o pescador está habilitado para venda |
-| `GET` | `/api/pescador/{id}/status` | Retorna o status atual do pescador |
+| `GET` | `/api/publico/associados/ativos` | Retorna associados ativos com dados operacionais mínimos |
+| `GET` | `/api/publico/lojas/aprovadas` | Retorna lojas aprovadas com dados operacionais mínimos |
+| `GET` | `/api/publico/pescador/{id}/ativo` | Retorna `true` quando o pescador está ativo, `false` caso contrário |
+| `GET` | `/api/publico/loja/{id}/ativa` | Retorna `true` quando a loja está ativa, `false` caso contrário |
+| `GET` | `/api/publico/pescador/{id}/pode-vender` | Verifica se o pescador está habilitado para venda |
+| `GET` | `/api/publico/pescador/{id}/status` | Retorna o status atual do pescador |
 
 **Critérios de Aceite:**
 - [ ] Todos os endpoints documentados e funcionais

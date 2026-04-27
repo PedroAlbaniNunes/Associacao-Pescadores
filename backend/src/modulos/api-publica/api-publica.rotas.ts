@@ -11,11 +11,6 @@ export async function rotasApiPublica(app: FastifyInstance) {
       select: {
         id: true,
         nome: true,
-        cpf: true,
-        email: true,
-        telefone: true,
-        embarcacao: true,
-        numeroCarteira: true,
         status: true,
       },
       orderBy: { nome: "asc" },
@@ -32,7 +27,7 @@ export async function rotasApiPublica(app: FastifyInstance) {
       },
       include: {
         associado: {
-          select: { id: true, nome: true, embarcacao: true, numeroCarteira: true },
+          select: { id: true, nome: true },
         },
       },
       orderBy: { nomeLoja: "asc" },
@@ -65,5 +60,25 @@ export async function rotasApiPublica(app: FastifyInstance) {
     });
     if (!associado) throw new ErroNaoEncontrado("Associado");
     return associado;
+  });
+
+  app.get<{ Params: { id: string } }>("/pescador/:id/ativo", async (requisicao) => {
+    await mensalidadesServico.sincronizarAtrasos();
+    const associado = await prisma.associado.findUnique({
+      where: { id: requisicao.params.id },
+      select: { status: true },
+    });
+    if (!associado) throw new ErroNaoEncontrado("Associado");
+    return associado.status === "ativo";
+  });
+
+  app.get<{ Params: { id: string } }>("/loja/:id/ativa", async (requisicao) => {
+    await mensalidadesServico.sincronizarAtrasos();
+    const loja = await prisma.loja.findUnique({
+      where: { id: requisicao.params.id },
+      select: { status: true, associado: { select: { status: true } } },
+    });
+    if (!loja) throw new ErroNaoEncontrado("Loja");
+    return loja.status === "aprovada" && loja.associado.status === "ativo";
   });
 }

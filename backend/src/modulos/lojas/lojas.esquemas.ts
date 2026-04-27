@@ -7,7 +7,6 @@ export const esquemaCriarLoja = z.object({
   nomeLoja: z.string().min(2),
   descricao: z.string().min(5),
   status: statusLoja.default("pendente"),
-  produtos: z.coerce.number().int().min(0).default(0),
 });
 
 export const esquemaAtualizarLoja = esquemaCriarLoja.partial();
