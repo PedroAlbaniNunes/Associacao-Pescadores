@@ -1,3 +1,5 @@
+/// <reference types="node" />
+
 import { PrismaClient } from "../src/generated/prisma/index.js";
 import bcrypt from "bcryptjs";
 
@@ -90,7 +92,6 @@ async function principal() {
       nomeLoja: "Peixes Frescos João",
       descricao: "Pescados frescos direto do mar",
       status: "aprovada" as const,
-      produtos: 12,
       dataAprovacao: new Date("2023-06-10"),
     },
     {
@@ -98,21 +99,18 @@ async function principal() {
       nomeLoja: "Empório do Mar",
       descricao: "Variedade de peixes e frutos do mar",
       status: "pendente" as const,
-      produtos: 8,
     },
     {
       donoNome: "Carlos Ferreira",
       nomeLoja: "Pescados Horizonte",
       descricao: "Qualidade e frescor garantidos",
       status: "pendente" as const,
-      produtos: 15,
     },
     {
       donoNome: "João da Silva",
       nomeLoja: "Fish Express",
       descricao: "Entrega rápida de pescados",
       status: "aprovada" as const,
-      produtos: 10,
       dataAprovacao: new Date("2023-08-20"),
     },
   ];
@@ -130,7 +128,6 @@ async function principal() {
         nomeLoja: dados.nomeLoja,
         descricao: dados.descricao,
         status: dados.status,
-        produtos: dados.produtos,
         dataAprovacao: dados.dataAprovacao,
       },
     });

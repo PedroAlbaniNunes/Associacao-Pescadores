@@ -1,0 +1,23 @@
+import { z } from "zod";
+
+export const esquemaCriarProduto = z.object({
+  lojaId: z.string().uuid(),
+  nome: z.string().min(2),
+  descricao: z.string().optional(),
+  preco: z.coerce.number().nonnegative(),
+  estoque: z.coerce.number().int().min(0).default(0),
+  ativo: z.coerce.boolean().default(true),
+});
+
+export const esquemaAtualizarProduto = esquemaCriarProduto.partial().omit({ lojaId: true });
+
+export const esquemaListarProdutos = z.object({
+  busca: z.string().optional(),
+  lojaId: z.string().uuid().optional(),
+  ativo: z.coerce.boolean().optional(),
+  pagina: z.coerce.number().int().min(1).default(1),
+  porPagina: z.coerce.number().int().min(1).max(100).default(20),
+});
+
+export type EntradaCriarProduto = z.infer<typeof esquemaCriarProduto>;
+export type EntradaAtualizarProduto = z.infer<typeof esquemaAtualizarProduto>;
