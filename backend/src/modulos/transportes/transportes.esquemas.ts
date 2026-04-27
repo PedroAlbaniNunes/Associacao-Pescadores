@@ -11,7 +11,9 @@ export const esquemaCriarTransporte = z.object({
   observacoes: z.string().optional(),
 });
 
-export const esquemaAtualizarTransporte = esquemaCriarTransporte.partial().omit({ vendaId: true });
+export const esquemaAtualizarTransporte = esquemaCriarTransporte
+  .partial()
+  .omit({ vendaId: true, status: true });
 
 export const esquemaAtualizarStatusTransporte = z.object({
   status: statusTransporte,

@@ -14,7 +14,13 @@ export const esquemaAtualizarProduto = esquemaCriarProduto.partial().omit({ loja
 export const esquemaListarProdutos = z.object({
   busca: z.string().optional(),
   lojaId: z.string().uuid().optional(),
-  ativo: z.coerce.boolean().optional(),
+  ativo: z
+    .preprocess((val: unknown) => {
+      if (val === "true") return true;
+      if (val === "false") return false;
+      return val;
+    }, z.boolean())
+    .optional(),
   pagina: z.coerce.number().int().min(1).default(1),
   porPagina: z.coerce.number().int().min(1).max(100).default(20),
 });

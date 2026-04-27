@@ -100,6 +100,15 @@ export const produtosServico = {
     const existente = await prisma.produto.findUnique({ where: { id } });
     if (!existente) throw new ErroNaoEncontrado("Produto");
 
+    const itemVendaRelacionado = await prisma.itemVenda.findFirst({
+      where: { produtoId: id },
+      select: { id: true },
+    });
+
+    if (itemVendaRelacionado) {
+      throw new ErroConflito("Não é possível excluir produto com itens de venda vinculados");
+    }
+
     await prisma.produto.delete({ where: { id } });
 
     await registrarAuditoria({

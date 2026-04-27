@@ -93,10 +93,20 @@ export const vendasServico = {
   },
 
   async criar(dados: EntradaCriarVenda, usuarioId?: string) {
-    const loja = await prisma.loja.findUnique({ where: { id: dados.lojaId } });
+    const loja = await prisma.loja.findUnique({
+      where: { id: dados.lojaId },
+      include: {
+        associado: { select: { id: true, status: true } },
+      },
+    });
     if (!loja) throw new ErroNaoEncontrado("Loja");
     if (loja.status !== "aprovada") {
       throw new ErroConflito("Somente lojas aprovadas podem registrar vendas");
+    }
+    if (!loja.associado || loja.associado.status !== "ativo") {
+      throw new ErroConflito(
+        "Somente lojas com associado ativo podem registrar vendas"
+      );
     }
 
     const associado = await prisma.associado.findUnique({ where: { id: dados.associadoId } });
@@ -105,10 +115,11 @@ export const vendasServico = {
       throw new ErroConflito("Somente associados ativos podem realizar vendas");
     }
 
+    const produtoIds = [...new Set(dados.itens.map((item) => item.produtoId))];
     const produtos = await prisma.produto.findMany({
-      where: { id: { in: dados.itens.map((i) => i.produtoId) } },
+      where: { id: { in: produtoIds } },
     });
-    if (produtos.length !== dados.itens.length) {
+    if (produtos.length !== produtoIds.length) {
       throw new ErroNaoEncontrado("Produto");
     }
 
@@ -167,36 +178,50 @@ export const vendasServico = {
   },
 
   async atualizarStatus(id: string, dados: EntradaAtualizarStatusVenda, usuarioId?: string) {
-    const venda = await prisma.venda.findUnique({
-      where: { id },
-      include: { itens: true },
-    });
-    if (!venda) throw new ErroNaoEncontrado("Venda");
+    const resultado = await prisma.$transaction(async (tx) => {
+      const venda = await tx.venda.findUnique({
+        where: { id },
+        include: { itens: true },
+      });
+      if (!venda) throw new ErroNaoEncontrado("Venda");
 
-    if (venda.status === dados.status) return venda;
+      if (venda.status === dados.status) {
+        return { atualizada: venda, statusAnterior: venda.status, alterou: false };
+      }
 
-    const atualizada = await prisma.$transaction(async (tx) => {
-      if (venda.status !== "concluida" && dados.status === "concluida") {
+      const statusAnterior = venda.status;
+      const updateResult = await tx.venda.updateMany({
+        where: { id, status: statusAnterior },
+        data: { status: dados.status, observacoes: dados.observacoes ?? venda.observacoes },
+      });
+
+      if (updateResult.count !== 1) {
+        throw new ErroConflito("A venda foi alterada por outra operação. Tente novamente.");
+      }
+
+      if (statusAnterior !== "concluida" && dados.status === "concluida") {
         await ajustarEstoqueItens(tx, venda.itens, "decrementar");
-      } else if (venda.status === "concluida" && dados.status === "cancelada") {
+      } else if (statusAnterior === "concluida" && dados.status === "cancelada") {
         await ajustarEstoqueItens(tx, venda.itens, "incrementar");
       }
 
-      return tx.venda.update({
-        where: { id },
-        data: { status: dados.status, observacoes: dados.observacoes ?? venda.observacoes },
-      });
+      const atualizada = await tx.venda.findUnique({ where: { id } });
+      if (!atualizada) throw new ErroNaoEncontrado("Venda");
+
+      return { atualizada, statusAnterior, alterou: true };
     });
+
+    if (!resultado.alterou) return resultado.atualizada;
 
     await registrarAuditoria({
       usuarioId,
       acao: "alterar_status",
       entidade: "venda",
       entidadeId: id,
-      detalhes: { de: venda.status, para: dados.status },
+      detalhes: { de: resultado.statusAnterior, para: dados.status },
     });
 
-    return atualizada;
+    return resultado.atualizada;
   },
 
   async excluir(id: string, usuarioId?: string) {

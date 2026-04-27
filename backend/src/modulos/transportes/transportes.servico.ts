@@ -66,18 +66,29 @@ export const transportesServico = {
   async criar(dados: EntradaCriarTransporte, usuarioId?: string) {
     const venda = await prisma.venda.findUnique({
       where: { id: dados.vendaId },
-      include: { transporte: true },
     });
     if (!venda) throw new ErroNaoEncontrado("Venda");
-    if (venda.transporte) throw new ErroConflito("Esta venda já possui transporte");
 
-    const transporte = await prisma.transporte.create({
-      data: {
-        ...dados,
-        dataEnvio: dados.status === "em_transito" ? new Date() : null,
-        dataEntrega: dados.status === "entregue" ? new Date() : null,
-      },
-    });
+    let transporte;
+    try {
+      transporte = await prisma.transporte.create({
+        data: {
+          ...dados,
+          dataEnvio: dados.status === "em_transito" ? new Date() : null,
+          dataEntrega: dados.status === "entregue" ? new Date() : null,
+        },
+      });
+    } catch (err) {
+      if (err && typeof err === "object" && "code" in err) {
+        if ((err as { code: string }).code === "P2002") {
+          throw new ErroConflito("Esta venda já possui transporte");
+        }
+        if ((err as { code: string }).code === "P2003") {
+          throw new ErroNaoEncontrado("Venda");
+        }
+      }
+      throw err;
+    }
 
     await registrarAuditoria({
       usuarioId,
