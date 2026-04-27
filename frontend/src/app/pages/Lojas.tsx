@@ -68,7 +68,6 @@ export function Lojas() {
     associadoId: "",
     nomeLoja: "",
     descricao: "",
-    produtos: 0,
   });
 
   async function carregarDados() {
@@ -104,7 +103,7 @@ export function Lojas() {
     try {
       await servicoLojas.criar(token, formulario);
       toast.success("Loja cadastrada com sucesso");
-      setFormulario({ associadoId: "", nomeLoja: "", descricao: "", produtos: 0 });
+      setFormulario({ associadoId: "", nomeLoja: "", descricao: "" });
       setModalAberta(false);
       await carregarDados();
     } catch (erro) {
@@ -190,7 +189,6 @@ export function Lojas() {
                 </Select>
                 <Input placeholder="Nome da loja" value={formulario.nomeLoja} onChange={(event) => setFormulario((atual) => ({ ...atual, nomeLoja: event.target.value }))} />
                 <Textarea placeholder="Descrição da loja" value={formulario.descricao} onChange={(event) => setFormulario((atual) => ({ ...atual, descricao: event.target.value }))} />
-                <Input type="number" min={0} placeholder="Quantidade de produtos" value={formulario.produtos} onChange={(event) => setFormulario((atual) => ({ ...atual, produtos: Number(event.target.value) }))} />
                 <Button className="w-full" type="submit">Salvar loja</Button>
               </form>
             </DialogContent>
@@ -234,7 +232,6 @@ export function Lojas() {
                   <TableHead>Loja</TableHead>
                   <TableHead>Associado</TableHead>
                   <TableHead>Descrição</TableHead>
-                  <TableHead>Produtos</TableHead>
                   <TableHead>Solicitação</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
@@ -253,7 +250,6 @@ export function Lojas() {
                     </TableCell>
                     <TableCell>{loja.associado?.nome ?? "—"}</TableCell>
                     <TableCell className="max-w-xs truncate">{loja.descricao}</TableCell>
-                    <TableCell>{loja.produtos}</TableCell>
                     <TableCell>{formatarData(loja.dataSolicitacao)}</TableCell>
                     <TableCell>
                       <Badge className={statusClasse[loja.status]}>{loja.status}</Badge>
@@ -288,7 +284,6 @@ export function Lojas() {
                                 <p><strong>Associado:</strong> {lojaSelecionada.associado?.nome}</p>
                                 <p><strong>Status:</strong> {lojaSelecionada.status}</p>
                                 <p><strong>Descrição:</strong> {lojaSelecionada.descricao}</p>
-                                <p><strong>Produtos:</strong> {lojaSelecionada.produtos}</p>
                                 <p><strong>Motivo da rejeição:</strong> {lojaSelecionada.motivoRejeicao || "—"}</p>
                               </div>
                             )}
